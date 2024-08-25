@@ -1,7 +1,21 @@
 version: '3.8'
 
 services:
-  db:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - mysql
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/aluno_db
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_PROFILES_ACTIVE: dev
+
+  mysql:
     image: mysql:8.0
     container_name: mysql
     restart: always
@@ -11,4 +25,10 @@ services:
     ports:
       - "3306:3306"
     volumes:
-        - ./mysql:/var/lib/mysql
+      - ./mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+      timeout: 5s
