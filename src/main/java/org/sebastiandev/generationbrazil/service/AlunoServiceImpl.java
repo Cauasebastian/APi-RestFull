@@ -1,12 +1,15 @@
 package org.sebastiandev.generationbrazil.service;
 
+import jakarta.validation.Valid;
+import org.sebastiandev.generationbrazil.exception.AlunoBadRequestException;
+import org.sebastiandev.generationbrazil.exception.AlunoNotFoundException;
 import org.sebastiandev.generationbrazil.model.Aluno;
 import org.sebastiandev.generationbrazil.repository.AlunoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class AlunoServiceImpl implements AlunoService {
@@ -16,57 +19,64 @@ public class AlunoServiceImpl implements AlunoService {
 
     @Override
     public List<Aluno> findAll() {
-        Optional<List<Aluno>> alunos = Optional.ofNullable(alunoRepository.findAll());
-        return alunos.orElse(null);
+        List<Aluno> alunos = alunoRepository.findAll();
+        if (alunos.isEmpty()) {
+            throw new AlunoNotFoundException("No students found");
+        }
+        return alunos;
     }
 
     @Override
     public Aluno findById(long id) {
-        Optional<Aluno> aluno = alunoRepository.findById(id);
-        return aluno.orElse(null);
+        return alunoRepository.findById(id)
+                .orElseThrow(() -> new AlunoNotFoundException(id));
     }
 
     @Override
-    public Aluno save(Aluno aluno) {
+    public Aluno save(@Valid Aluno aluno) {
+        if (aluno == null || aluno.getNome() == null || aluno.getNome().isEmpty()) {
+            throw new AlunoBadRequestException("Aluno data is invalid");
+        }
         return alunoRepository.save(aluno);
     }
 
     @Override
-    public Aluno update(long id, Aluno aluno) {
-        if(alunoRepository.existsById(id)) {
-            aluno.setId(id);
-            return alunoRepository.save(aluno);
+    public Aluno update(long id, @Valid Aluno aluno) {
+        if (!alunoRepository.existsById(id)) {
+            throw new AlunoNotFoundException(id);
         }
-        return null;
+        aluno.setId(id);
+        return alunoRepository.save(aluno);
     }
 
     @Override
     public void delete(long id) {
+        if (!alunoRepository.existsById(id)) {
+            throw new AlunoNotFoundException(id);
+        }
         alunoRepository.deleteById(id);
     }
 
     @Override
     public Aluno updatePartial(long id, Aluno aluno) {
-        Optional<Aluno> alunoOptional = alunoRepository.findById(id);
-        if(alunoOptional.isPresent()){
-            Aluno alunoAtualizado = alunoOptional.get();
-            if(aluno.getNome() != null){
-                alunoAtualizado.setNome(aluno.getNome());
-            }
-            if(aluno.getNotaSemestre1() != null){
-                alunoAtualizado.setNotaSemestre1(aluno.getNotaSemestre1());
-            }
-            if(aluno.getNotaSemestre2() != null){
-                alunoAtualizado.setNotaSemestre2(aluno.getNotaSemestre2());
-            }
-            if(aluno.getNomeProfessor() != null){
-                alunoAtualizado.setNomeProfessor(aluno.getNomeProfessor());
-            }
-            if(aluno.getNumeroSala() != 0){
-                alunoAtualizado.setNumeroSala(aluno.getNumeroSala());
-            }
-            return alunoRepository.save(alunoAtualizado);
+        Aluno alunoAtualizado = alunoRepository.findById(id)
+                .orElseThrow(() -> new AlunoNotFoundException(id));
+
+        if (aluno.getNome() != null) {
+            alunoAtualizado.setNome(aluno.getNome());
         }
-        return null;
+        if (aluno.getNotaSemestre1() != null) {
+            alunoAtualizado.setNotaSemestre1(aluno.getNotaSemestre1());
+        }
+        if (aluno.getNotaSemestre2() != null) {
+            alunoAtualizado.setNotaSemestre2(aluno.getNotaSemestre2());
+        }
+        if (aluno.getNomeProfessor() != null) {
+            alunoAtualizado.setNomeProfessor(aluno.getNomeProfessor());
+        }
+        if (aluno.getNumeroSala() != 0) {
+            alunoAtualizado.setNumeroSala(aluno.getNumeroSala());
+        }
+        return alunoRepository.save(alunoAtualizado);
     }
 }

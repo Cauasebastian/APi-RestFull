@@ -1,13 +1,19 @@
 package org.sebastiandev.generationbrazil.controller;
 
+import jakarta.validation.Valid;
 import org.sebastiandev.generationbrazil.model.Aluno;
 import org.sebastiandev.generationbrazil.service.AlunoService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.CollectionModel;
+import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.linkTo;
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.methodOn;
 
 @RestController
 @RequestMapping("/alunos")
@@ -17,55 +23,56 @@ public class AlunoController {
     private AlunoService alunoService;
 
     @GetMapping
-    public ResponseEntity<List<Aluno>> getAllProducts(){
-        if(alunoService.findAll().isEmpty()){
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(alunoService.findAll());
+    public ResponseEntity<CollectionModel<EntityModel<Aluno>>> getAllAlunos() {
+        List<EntityModel<Aluno>> alunos = alunoService.findAll().stream()
+                .map(aluno -> EntityModel.of(aluno,
+                        linkTo(methodOn(AlunoController.class).getAlunoById(aluno.getId())).withSelfRel(),
+                        linkTo(methodOn(AlunoController.class).getAllAlunos()).withRel("alunos")))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(CollectionModel.of(alunos,
+                linkTo(methodOn(AlunoController.class).getAllAlunos()).withSelfRel()));
     }
+
     @GetMapping("/{id}")
-    public ResponseEntity<Aluno> getProductById(@PathVariable long id){
+    public ResponseEntity<EntityModel<Aluno>> getAlunoById(@PathVariable long id) {
         Aluno aluno = alunoService.findById(id);
-        if(aluno == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(aluno);
+        EntityModel<Aluno> alunoModel = EntityModel.of(aluno,
+                linkTo(methodOn(AlunoController.class).getAlunoById(id)).withSelfRel(),
+                linkTo(methodOn(AlunoController.class).getAllAlunos()).withRel("alunos"));
+        return ResponseEntity.ok(alunoModel);
     }
+
     @PostMapping
-    public ResponseEntity<Aluno> saveProduct(@RequestBody Aluno aluno){
-        if(aluno == null){
-            return ResponseEntity.badRequest().build();
-        }
-        return ResponseEntity.ok(alunoService.save(aluno));
+    public ResponseEntity<EntityModel<Aluno>> saveAluno(@Valid @RequestBody Aluno aluno) {
+        Aluno savedAluno = alunoService.save(aluno);
+        EntityModel<Aluno> alunoModel = EntityModel.of(savedAluno,
+                linkTo(methodOn(AlunoController.class).getAlunoById(savedAluno.getId())).withSelfRel(),
+                linkTo(methodOn(AlunoController.class).getAllAlunos()).withRel("alunos"));
+        return ResponseEntity.ok(alunoModel);
     }
+
     @PutMapping("/{id}")
-    public ResponseEntity<Aluno> updateProduct(@PathVariable long id, @RequestBody Aluno aluno){
-        if(aluno == null){
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<EntityModel<Aluno>> updateAluno(@PathVariable long id, @Valid @RequestBody Aluno aluno) {
         Aluno updatedAluno = alunoService.update(id, aluno);
-        if(updatedAluno == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(updatedAluno);
+        EntityModel<Aluno> alunoModel = EntityModel.of(updatedAluno,
+                linkTo(methodOn(AlunoController.class).getAlunoById(updatedAluno.getId())).withSelfRel(),
+                linkTo(methodOn(AlunoController.class).getAllAlunos()).withRel("alunos"));
+        return ResponseEntity.ok(alunoModel);
     }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable long id){
+    public ResponseEntity<Void> deleteAluno(@PathVariable long id) {
         alunoService.delete(id);
-        if(alunoService.findById(id) == null){
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+        return ResponseEntity.noContent().build();
     }
+
     @PatchMapping("/{id}")
-    public ResponseEntity<Aluno> updatePartialProduct(@PathVariable long id, @RequestBody Aluno aluno){
-        if(aluno == null){
-            return ResponseEntity.badRequest().build();
-        }
+    public ResponseEntity<EntityModel<Aluno>> updatePartialAluno(@PathVariable long id, @RequestBody Aluno aluno) {
         Aluno updatedAluno = alunoService.updatePartial(id, aluno);
-        if(updatedAluno == null){
-            return ResponseEntity.notFound().build();
-        }
-        return ResponseEntity.ok(updatedAluno);
+        EntityModel<Aluno> alunoModel = EntityModel.of(updatedAluno,
+                linkTo(methodOn(AlunoController.class).getAlunoById(updatedAluno.getId())).withSelfRel(),
+                linkTo(methodOn(AlunoController.class).getAllAlunos()).withRel("alunos"));
+        return ResponseEntity.ok(alunoModel);
     }
 }
