@@ -1,13 +1,14 @@
 package org.sebastiandev.generationbrazil.service;
 
-import jakarta.validation.Valid;
 import org.sebastiandev.generationbrazil.exception.AlunoBadRequestException;
 import org.sebastiandev.generationbrazil.exception.AlunoNotFoundException;
 import org.sebastiandev.generationbrazil.model.Aluno;
 import org.sebastiandev.generationbrazil.repository.AlunoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-
 
 import java.util.List;
 
@@ -18,6 +19,7 @@ public class AlunoServiceImpl implements AlunoService {
     private AlunoRepository alunoRepository;
 
     @Override
+    @Cacheable("alunos")
     public List<Aluno> findAll() {
         List<Aluno> alunos = alunoRepository.findAll();
         if (alunos.isEmpty()) {
@@ -27,13 +29,16 @@ public class AlunoServiceImpl implements AlunoService {
     }
 
     @Override
+    @Cacheable(value = "aluno", key = "#id")
     public Aluno findById(long id) {
         return alunoRepository.findById(id)
                 .orElseThrow(() -> new AlunoNotFoundException(id));
     }
 
     @Override
-    public Aluno save(@Valid Aluno aluno) {
+    @CacheEvict(value = "alunos", allEntries = true)
+    @CachePut(value = "aluno", key = "#result.id")
+    public Aluno save(Aluno aluno) {
         if (aluno == null || aluno.getNome() == null || aluno.getNome().isEmpty()) {
             throw new AlunoBadRequestException("Aluno data is invalid");
         }
@@ -41,7 +46,8 @@ public class AlunoServiceImpl implements AlunoService {
     }
 
     @Override
-    public Aluno update(long id, @Valid Aluno aluno) {
+    @CacheEvict(value = {"aluno", "alunos"}, key = "#id", allEntries = true)
+    public Aluno update(long id, Aluno aluno) {
         if (!alunoRepository.existsById(id)) {
             throw new AlunoNotFoundException(id);
         }
@@ -50,6 +56,7 @@ public class AlunoServiceImpl implements AlunoService {
     }
 
     @Override
+    @CacheEvict(value = {"aluno", "alunos"}, key = "#id", allEntries = true)
     public void delete(long id) {
         if (!alunoRepository.existsById(id)) {
             throw new AlunoNotFoundException(id);
@@ -58,6 +65,8 @@ public class AlunoServiceImpl implements AlunoService {
     }
 
     @Override
+    @CachePut(value = "aluno", key = "#id")
+    @CacheEvict(value = "alunos", allEntries = true)
     public Aluno updatePartial(long id, Aluno aluno) {
         Aluno alunoAtualizado = alunoRepository.findById(id)
                 .orElseThrow(() -> new AlunoNotFoundException(id));
