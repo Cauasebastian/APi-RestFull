@@ -28,15 +28,8 @@ WORKDIR /app
 # Copiar o JAR construído da etapa de build
 COPY --from=build /app/target/*.jar app.jar
 
-# Definir as variáveis de ambiente para o Spring Boot
-ENV SPRING_APPLICATION_NAME=generationbrazil
-ENV SPRING_DATASOURCE_URL=jdbc:postgresql://autorack.proxy.rlwy.net:44115/railway
-ENV SPRING_DATASOURCE_USERNAME=postgres
-ENV SPRING_DATASOURCE_PASSWORD=ZscVrbwOnzQiOXUioTPazRyklkcVAAVq
-ENV SPRING_PROFILES_ACTIVE=dev
-
 # Expor a porta da aplicação
 EXPOSE 8080
 
-# Comando para executar a aplicação
+# Executar a aplicação
 ENTRYPOINT ["java", "-jar", "app.jar"]
